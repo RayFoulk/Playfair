@@ -25,6 +25,9 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
+#include <unistd.h>
+#include <getopt.h>
+#include <ctype.h>
 
 //------------------------------------------------------------------------|
 #define KEYBLOCK_WIDTH		5
@@ -46,6 +49,10 @@ typedef struct
     // Pointers to the passphrase and message to encrypt/decrypt
     char * passphrase;
     char * message;
+
+    // Options
+    bool verbose;
+    bool encode;
 }
 playfair_t;
 
@@ -60,20 +67,89 @@ static void init()
     pf.omit = 'J';
     pf.mapto = 'I';
     pf.nonce = 'X';
+
+    pf.passphrase = "";
+    pf.message = "";
+
+    pf.verbose = false;
+    pf.encode = true;
 }
 
+//------------------------------------------------------------------------|
 static void quit(int error)
 {
+    // Cleanup...
 
     exit(error);
 }
 
 //------------------------------------------------------------------------|
-static bool parse(int argc, char *argv[])
+static void help(const char * opts)
 {
+    printf("opts: '%s'\n", opts);
+}
 
+//------------------------------------------------------------------------|
+static void parse(int argc, char *argv[])
+{
+    const char * opts = "vqn:p:m:edh";
+    int option;
+    extern char * optarg;
 
-    return true;
+    // Show help and exit if no arguments
+    if (argc < 2)
+    {
+        help(opts);
+        quit(2);
+    }
+
+    // Process command line
+    while ((option = getopt (argc, argv, opts)) > 0)
+    {
+        switch (option)
+        {
+            case 'v':
+                pf.verbose = true;
+                break;
+
+            case 'q':
+                // Drop 'Q' rather than mapping 'J' to 'I'
+                pf.omit = 'Q';
+                pf.mapto = '\0';
+                break;
+
+            case 'n':
+                // Change the nonce from 'X' to something else
+                pf.nonce = (char) toupper(optarg[0]);
+                break;
+
+            case 'p':
+                // Set the passphrase pointer
+                pf.passphrase = optarg;
+                break;
+
+            case 'm':
+                // Set the message pointer
+                pf.passphrase = optarg;
+                break;
+
+            case 'e':
+                // Encode (Default)
+                pf.encode = true;
+                break;
+
+            case 'd':
+                // Decode
+                pf.encode = false;
+                break;
+
+            case 'h':
+            default:
+                help(opts);
+                quit(3);
+                break;
+        }
+    }
 }
 
 
@@ -81,14 +157,11 @@ static bool parse(int argc, char *argv[])
 int main(int argc, char *argv[])
 {
     init();
+    parse(argc, argv);
 
-    if (!parse(argc, argv))
-    {
-        quit(1);
-    }
+
 
 
     quit(0);
-
     return 0;
 }
