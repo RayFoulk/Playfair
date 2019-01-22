@@ -56,6 +56,14 @@ typedef struct
 }
 playfair_t;
 
+// Just for help screen
+typedef struct
+{
+    char optc;
+    char * desc;
+}
+opthelp_t;
+
 //------------------------------------------------------------------------|
 static playfair_t pf;
 
@@ -86,7 +94,29 @@ static void quit(int error)
 //------------------------------------------------------------------------|
 static void help(const char * opts)
 {
+    int i;
+    int j;
+    static const opthelp_t opthelp[] =
+    {
+        { 'v', "Enable verbose mode" },
+        { 'q', "Drop Q rather than mapping J to I" },
+        { 'n', "Set the nonce character to something other than X" },
+
+        { '\0', NULL }
+    };
+
     printf("opts: '%s'\n", opts);
+    for (i = 0; opts[i] != '\0'; i++)
+    {
+        for (j = 0; opthelp[j].optc != '\0'; j++)
+        {
+            if (opthelp[j].optc == opts[i])
+            {
+                printf("    -%c %s    %s\n", opthelp[j].optc, "FIXME",
+                    opthelp[j].desc);
+            } 
+        }
+    }
 }
 
 //------------------------------------------------------------------------|
