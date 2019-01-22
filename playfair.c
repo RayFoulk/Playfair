@@ -68,8 +68,8 @@ static void init()
     pf.mapto = 'I';
     pf.nonce = 'X';
 
-    pf.passphrase = "";
-    pf.message = "";
+    pf.passphrase = NULL;
+    pf.message = NULL;
 
     pf.verbose = false;
     pf.encode = true;
@@ -130,7 +130,7 @@ static void parse(int argc, char *argv[])
 
             case 'm':
                 // Set the message pointer
-                pf.passphrase = optarg;
+                pf.message = optarg;
                 break;
 
             case 'e':
@@ -149,6 +149,21 @@ static void parse(int argc, char *argv[])
                 quit(3);
                 break;
         }
+    }
+
+    // Require at least a passphrase and a message
+    if (pf.passphrase == NULL)
+    {
+        printf("ERROR: No passphrase was given\n");
+        help(opts);
+        quit(4);
+    }
+
+    if (pf.message == NULL)
+    {
+        printf("ERROR: No message was given\n");
+        help(opts);
+        quit(5);
     }
 }
 
