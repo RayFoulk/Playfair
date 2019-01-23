@@ -56,14 +56,6 @@ typedef struct
 }
 playfair_t;
 
-// Just for help screen
-typedef struct
-{
-    char optc;
-    char * desc;
-}
-opthelp_t;
-
 //------------------------------------------------------------------------|
 static playfair_t pf;
 
@@ -75,10 +67,8 @@ static void init()
     pf.omit = 'J';
     pf.mapto = 'I';
     pf.nonce = 'X';
-
     pf.passphrase = NULL;
     pf.message = NULL;
-
     pf.verbose = false;
     pf.encode = true;
 }
@@ -92,45 +82,33 @@ static void quit(int error)
 }
 
 //------------------------------------------------------------------------|
-static void help(const char * opts)
+static void help(const char * prog, const char * opts)
 {
-    int i;
-    int j;
-    static const opthelp_t opthelp[] =
-    {
-        { 'v', "Enable verbose mode" },
-        { 'q', "Drop Q rather than mapping J to I" },
-        { 'n', "Set the nonce character to something other than X" },
+    // Keep it simple.  No need to introduce opts module just yet...
+    printf("usage: %s [%s]\n\n"
+        "-v               Verbose mode.  Show intermediate info\n"
+        "-q               Drop Q rather than mapping J to I\n"
+        "-n <nonce>       Change nonce character from X to something else\n"
+        "-p <passphrase>  Set the passphrase\n"
+        "-e <message>     Encode a message: plaintext to ciphertext\n"
+        "-d <message>     Decode a message: ciphertext to plaintext\n"
+        "-h               Help.  Show this screen and exit\n"
+        "\n", prog, opts);
 
-        { '\0', NULL }
-    };
-
-    printf("opts: '%s'\n", opts);
-    for (i = 0; opts[i] != '\0'; i++)
-    {
-        for (j = 0; opthelp[j].optc != '\0'; j++)
-        {
-            if (opthelp[j].optc == opts[i])
-            {
-                printf("    -%c %s    %s\n", opthelp[j].optc, "FIXME",
-                    opthelp[j].desc);
-            } 
-        }
-    }
+    quit(1);
 }
 
 //------------------------------------------------------------------------|
 static void parse(int argc, char *argv[])
 {
-    const char * opts = "vqn:p:m:edh";
+    const char * opts = "vqn:p:e:d:h";
     int option;
     extern char * optarg;
 
     // Show help and exit if no arguments
     if (argc < 2)
     {
-        help(opts);
-        quit(2);
+        help(argv[0], opts);
     }
 
     // Process command line
@@ -158,25 +136,21 @@ static void parse(int argc, char *argv[])
                 pf.passphrase = optarg;
                 break;
 
-            case 'm':
-                // Set the message pointer
+            case 'e':
+                // Encode a message
+                pf.encode = true;
                 pf.message = optarg;
                 break;
 
-            case 'e':
-                // Encode (Default)
-                pf.encode = true;
-                break;
-
             case 'd':
-                // Decode
+                // Decode a message
                 pf.encode = false;
+                pf.message = optarg;
                 break;
 
             case 'h':
             default:
-                help(opts);
-                quit(3);
+                help(argv[0], opts);
                 break;
         }
     }
@@ -185,27 +159,108 @@ static void parse(int argc, char *argv[])
     if (pf.passphrase == NULL)
     {
         printf("ERROR: No passphrase was given\n");
-        help(opts);
-        quit(4);
+        help(argv[0], opts);
     }
 
     if (pf.message == NULL)
     {
         printf("ERROR: No message was given\n");
-        help(opts);
-        quit(5);
+        help(argv[0], opts);
     }
 }
 
+// remove duplicate chars (passphrase only)
+// insert nonces between repeated chars (message only - encrypt) 
+
+// remove non-alpha/whitespace chars (passphrase and message)
+// uppercase all letters (passphrase and message)
+// remove ommitted letter and substitue with mapto (passphrase and message)
+
 
 //------------------------------------------------------------------------|
-int main(int argc, char *argv[])
+// Common filter for passphrase or message prior to encode or decode.
+// This removes non-alpha characters, forces all to uppercase, and removes
+// the ommitted letter, optionally substituting with the mapped letter.
+// This operates on the string in-place assuming we are using memory given
+// to this process by the environment (the command line itself) 
+static bool filter(char * str)
+{
+    size_t i = 0;
+    size_t j = 0;
+
+    if(pf.verbose)
+    {
+        printf("raw:      \'%s\'\n", str);
+    }
+
+    while(str[i] != '\0')
+    {
+        printf("%c\t", str[i]);
+
+        j = 0;
+        while(str[j] != '\0')
+        {
+            printf("%c ", str[j]);
+
+            j++;
+        }
+        printf("\n");
+
+        i++;
+    }
+    printf("\n");
+
+    if(pf.verbose)
+    {
+        printf("filtered: \'%s\'\n", str);
+    }    
+
+    return true;
+}
+
+//------------------------------------------------------------------------|
+static void setup()
+{
+    // Prepare the passphrase
+    if (!filter(pf.passphrase))
+    {
+        printf("ERROR: Filter passphrase failed\n");
+        quit(2);
+    }
+
+    // Prepare the message
+    if (!filter(pf.message))
+    {
+        printf("ERROR: Filter message failed\n");
+        quit(3);
+    }
+
+    // populate keyblock
+       
+
+}
+
+//------------------------------------------------------------------------|
+static void cipher()
+{
+    if (pf.encode)
+    {
+
+    }
+    else
+    {
+
+    }
+}
+
+//------------------------------------------------------------------------|
+int main(int argc, char * argv[])
 {
     init();
     parse(argc, argv);
 
-
-
+    setup();
+    cipher();
 
     quit(0);
     return 0;
