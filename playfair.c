@@ -291,10 +291,32 @@ static void unique(char * str, size_t len)
     alpha(str, len);
 }
 
-// insert nonces between repeated chars (message only - encrypt) 
+//------------------------------------------------------------------------|
+// Remove ommitted letter and optionally substitue with mapped character.
+// This should be done both for the passphrase and the message.
+static void mapchar(char * str, size_t len)
+{
+    size_t i = 0;
+    while((i < len) && (str[i] != '\0'))
+    {
 
-// remove ommitted letter and substitue with mapto (passphrase and message)
+        i++;
+    }
 
+}
+
+//------------------------------------------------------------------------|
+// Insert nonces between repeated characters.  This will be used for the
+// message only.
+static void nonces(char * str, size_t len)
+{
+    size_t i = 0;
+    while((i < len) && (str[i] != '\0'))
+    {
+
+        i++;
+    }
+}
 
 //------------------------------------------------------------------------|
 // Common filter for passphrase or message prior to encode or decode.
@@ -302,25 +324,27 @@ static void unique(char * str, size_t len)
 // the ommitted letter, optionally substituting with the mapped letter.
 // This operates on the string in-place assuming we are using memory given
 // to this process by the environment (the command line itself) 
-static bool filter(char * str)
+static bool filter(char * str, bool isPass)
 {
-    //size_t i = 0;
-    //size_t j = 0;
     size_t len = strlen(str);
-    //size_t slen = 0;
 
     if(pf.verbose)
     {
-        printf("raw:      \'%s\'\n", str);
+        printf("%s\n", isPass ? "passphrase" : "message");
+        printf("    raw:      \'%s\'\n", str);
     }
 
     alpha(str, len);
     upper(str, len);
     unique(str, len);
 
+    mapchar(str, len);
+
+    nonces(str, len);
+
     if(pf.verbose)
     {
-        printf("filtered: \'%s\'\n", str);
+        printf("    filtered: \'%s\'\n", str);
     }    
 
     return true;
@@ -330,14 +354,14 @@ static bool filter(char * str)
 static void setup()
 {
     // Prepare the passphrase
-    if (!filter(pf.passphrase))
+    if (!filter(pf.passphrase, true))
     {
         printf("ERROR: Filter passphrase failed\n");
         quit(2);
     }
 
     // Prepare the message
-    if (!filter(pf.message))
+    if (!filter(pf.message, false))
     {
         printf("ERROR: Filter message failed\n");
         quit(3);
