@@ -34,6 +34,14 @@
 #define KEYBLOCK_HEIGHT		5
 #define KEYBLOCK_SIZE		(KEYBLOCK_WIDTH * KEYBLOCK_HEIGHT)
 
+#define max(a,b) ({ __typeof__ (a) _a = (a); \
+                    __typeof__ (b) _b = (b); \
+                    _a > _b ? _a : _b; })
+
+#define min(a,b) ({ __typeof__ (a) _a = (a); \
+                    __typeof__ (b) _b = (b); \
+                    _a < _b ? _a : _b; })
+
 //------------------------------------------------------------------------|
 typedef struct
 {
@@ -176,6 +184,59 @@ static void parse(int argc, char *argv[])
 // uppercase all letters (passphrase and message)
 // remove ommitted letter and substitue with mapto (passphrase and message)
 
+//------------------------------------------------------------------------|
+// Keep only alphabetic characters, discarding the rest
+static void alpha(char * str, size_t len)
+{
+    size_t i = 0;  // source
+    size_t j = 0;  // destination
+
+    while((i < len) && (str[i] != '\0'))
+    {
+        if (isalpha(str[i]))
+        {
+            if (i != j)
+            {
+                str[j] = str[i];
+            }
+
+            j++;
+        }
+
+        i++;
+    }
+
+    str[j] = '\0';
+}
+
+//------------------------------------------------------------------------|
+// Remove duplicate alpha characters, keeping only uniquely occuring ones
+static void unique(char * str, size_t len)
+{
+    size_t i = 0;  // source
+    size_t j = 0;  // destination
+
+    while((i < len) && (str[i] != '\0'))
+    {
+        j = i + 1;
+        while((j < len) && (str[j] != '\0'))
+        {
+
+            // Simply mark the char non-alpha then call alpha() later
+            if (str[j] == str[i])
+            {
+                str[j] = ' ';
+            }
+
+            j++;
+        }
+
+        i++;
+    }
+
+    alpha(str, len);
+}
+
 
 //------------------------------------------------------------------------|
 // Common filter for passphrase or message prior to encode or decode.
@@ -185,17 +246,45 @@ static void parse(int argc, char *argv[])
 // to this process by the environment (the command line itself) 
 static bool filter(char * str)
 {
-    size_t i = 0;
-    size_t j = 0;
+    //size_t i = 0;
+    //size_t j = 0;
+    size_t len = strlen(str);
+    //size_t slen = 0;
 
     if(pf.verbose)
     {
         printf("raw:      \'%s\'\n", str);
     }
 
+    alpha(str, len);
+    unique(str, len);
+
+    /*
     while(str[i] != '\0')
     {
         printf("%c\t", str[i]);
+
+        if (isalpha(str[i]))
+        {
+            str[i] = (char) toupper(str[i]);
+        }
+        else
+        {
+            // Find the next alpha char and resume from there
+            j = i;
+            while((str[j] != '\0') && !isalpha(str[j]))
+            {
+                j++;
+            }
+
+           
+
+            len = strlen(str);
+            slen = max(0, len - j);
+            memmove(str + i, str + j, slen);
+            str[len - slen] = 0;
+
+        }
 
         j = 0;
         while(str[j] != '\0')
@@ -209,6 +298,8 @@ static bool filter(char * str)
         i++;
     }
     printf("\n");
+    */
+
 
     if(pf.verbose)
     {
