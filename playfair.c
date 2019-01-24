@@ -30,15 +30,16 @@
 #include <ctype.h>
 
 //------------------------------------------------------------------------|
-#define KEYBLOCK_WIDTH		5
-#define KEYBLOCK_HEIGHT		5
-#define KEYBLOCK_SIZE		(KEYBLOCK_WIDTH * KEYBLOCK_HEIGHT)
+#define MESSAGE_SIZE_MAX        2048
+#define KEYBLOCK_WIDTH          5
+#define KEYBLOCK_HEIGHT         5
+#define KEYBLOCK_SIZE           (KEYBLOCK_WIDTH * KEYBLOCK_HEIGHT)
 
-#define max(a,b) ({ __typeof__ (a) _a = (a); \
+#define MAX(a,b) ({ __typeof__ (a) _a = (a); \
                     __typeof__ (b) _b = (b); \
                     _a > _b ? _a : _b; })
 
-#define min(a,b) ({ __typeof__ (a) _a = (a); \
+#define MIN(a,b) ({ __typeof__ (a) _a = (a); \
                     __typeof__ (b) _b = (b); \
                     _a < _b ? _a : _b; })
 
@@ -57,6 +58,7 @@ typedef struct
     // Pointers to the passphrase and message to encrypt/decrypt
     char * passphrase;
     char * message;
+    size_t msgsize;
 
     // Options
     bool verbose;
@@ -77,6 +79,7 @@ static void init()
     pf.nonce = 'X';
     pf.passphrase = NULL;
     pf.message = NULL;
+    pf.msgsize = 0;
     pf.verbose = false;
     pf.encode = true;
 }
@@ -85,11 +88,49 @@ static void init()
 static void quit(int error)
 {
     // Cleanup...
+    if (pf.message != NULL)
+    {
+        free(pf.message);
+        pf.message = NULL;
+    }
 
     exit(error);
 }
 
 //------------------------------------------------------------------------|
+// Allocate a message buffer based on the command-line message given
+static void message(const char * msg)
+{
+    size_t len = strlen(msg);
+
+    // This could be a problem if encode and decode options are both
+    // specified.  The last once given will be used.
+    if (pf.message != NULL)
+    {
+        free(pf.message);
+        pf.message = NULL;
+    }
+
+    // The cipher message length may be shorter or longer than the
+    // original message length for various reasons.  The theoretical
+    // worst case scenario is an odd number of repeated characters,
+    // resulting in ciphertext twice as long as the original message.
+    // add a little padding just to be on the safe side.
+    pf.msgsize = MIN(len * 2 + 2, MESSAGE_SIZE_MAX);
+    pf.message = (char *) malloc(pf.msgsize);
+
+    if (pf.message == NULL)
+    {
+        printf("ERROR: Could not allocate message buffer!\n");
+        quit(4);
+    }
+
+    memset(pf.message, 0, pf.msgsize);
+    strncpy(pf.message, msg, len + 1);
+}
+
+//------------------------------------------------------------------------|
+// Show a help screen and quit the program
 static void help(const char * prog, const char * opts)
 {
     // Keep it simple.  No need to introduce opts module just yet...
@@ -107,6 +148,7 @@ static void help(const char * prog, const char * opts)
 }
 
 //------------------------------------------------------------------------|
+// Parse command line parameters and setup globals
 static void parse(int argc, char *argv[])
 {
     const char * opts = "vqn:p:e:d:h";
@@ -147,13 +189,13 @@ static void parse(int argc, char *argv[])
             case 'e':
                 // Encode a message
                 pf.encode = true;
-                pf.message = optarg;
+                message(optarg);
                 break;
 
             case 'd':
                 // Decode a message
                 pf.encode = false;
-                pf.message = optarg;
+                message(optarg);
                 break;
 
             case 'h':
