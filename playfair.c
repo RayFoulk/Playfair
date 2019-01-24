@@ -177,15 +177,9 @@ static void parse(int argc, char *argv[])
     }
 }
 
-// remove duplicate chars (passphrase only)
-// insert nonces between repeated chars (message only - encrypt) 
-
-// remove non-alpha/whitespace chars (passphrase and message)
-// uppercase all letters (passphrase and message)
-// remove ommitted letter and substitue with mapto (passphrase and message)
-
 //------------------------------------------------------------------------|
-// Keep only alphabetic characters, discarding the rest
+// Keep only alphabetic characters, discarding the rest.  This will be
+// used for the message and the passphrase.
 static void alpha(char * str, size_t len)
 {
     size_t i = 0;  // source
@@ -210,11 +204,29 @@ static void alpha(char * str, size_t len)
 }
 
 //------------------------------------------------------------------------|
-// Remove duplicate alpha characters, keeping only uniquely occuring ones
+// Convert all letters to uppercase.  This will be used to the message
+// and the passphrase.
+static void upper(char * str, size_t len)
+{
+    size_t i = 0;
+    while((i < len) && (str[i] != '\0'))
+    {
+        if (isalpha(str[i]))
+        {
+            str[i] = toupper(str[i]);
+        }
+
+        i++;
+    }
+}
+
+//------------------------------------------------------------------------|
+// Remove duplicate alpha characters, keeping only uniquely occuring ones.
+// This will be used for the passphrase only.
 static void unique(char * str, size_t len)
 {
-    size_t i = 0;  // source
-    size_t j = 0;  // destination
+    size_t i = 0;
+    size_t j = 0;
 
     while((i < len) && (str[i] != '\0'))
     {
@@ -237,6 +249,10 @@ static void unique(char * str, size_t len)
     alpha(str, len);
 }
 
+// insert nonces between repeated chars (message only - encrypt) 
+
+// remove ommitted letter and substitue with mapto (passphrase and message)
+
 
 //------------------------------------------------------------------------|
 // Common filter for passphrase or message prior to encode or decode.
@@ -257,49 +273,8 @@ static bool filter(char * str)
     }
 
     alpha(str, len);
+    upper(str, len);
     unique(str, len);
-
-    /*
-    while(str[i] != '\0')
-    {
-        printf("%c\t", str[i]);
-
-        if (isalpha(str[i]))
-        {
-            str[i] = (char) toupper(str[i]);
-        }
-        else
-        {
-            // Find the next alpha char and resume from there
-            j = i;
-            while((str[j] != '\0') && !isalpha(str[j]))
-            {
-                j++;
-            }
-
-           
-
-            len = strlen(str);
-            slen = max(0, len - j);
-            memmove(str + i, str + j, slen);
-            str[len - slen] = 0;
-
-        }
-
-        j = 0;
-        while(str[j] != '\0')
-        {
-            printf("%c ", str[j]);
-
-            j++;
-        }
-        printf("\n");
-
-        i++;
-    }
-    printf("\n");
-    */
-
 
     if(pf.verbose)
     {
