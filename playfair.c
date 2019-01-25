@@ -227,7 +227,7 @@ static void alpha(char * str, size_t len)
     size_t i = 0;  // source
     size_t j = 0;  // destination
 
-    while((i < len) && (str[i] != '\0'))
+    while ((i < len) && (str[i] != '\0'))
     {
         if (isalpha(str[i]))
         {
@@ -251,7 +251,7 @@ static void alpha(char * str, size_t len)
 static void upper(char * str, size_t len)
 {
     size_t i = 0;
-    while((i < len) && (str[i] != '\0'))
+    while ((i < len) && (str[i] != '\0'))
     {
         if (isalpha(str[i]))
         {
@@ -270,13 +270,15 @@ static void unique(char * str, size_t len)
     size_t i = 0;
     size_t j = 0;
 
-    while((i < len) && (str[i] != '\0'))
+    while ((i < len) && (str[i] != '\0'))
     {
         j = i + 1;
-        while((j < len) && (str[j] != '\0'))
+        while ((j < len) && (str[j] != '\0'))
         {
 
-            // Simply mark the char non-alpha then call alpha() later
+            // Simply mark the char non-alpha then call alpha() later.
+            // Alternatively we could call memmove() multiple times,
+            // but this is much simpler.
             if (str[j] == str[i])
             {
                 str[j] = ' ';
@@ -297,12 +299,18 @@ static void unique(char * str, size_t len)
 static void mapchar(char * str, size_t len)
 {
     size_t i = 0;
-    while((i < len) && (str[i] != '\0'))
+    while ((i < len) && (str[i] != '\0'))
     {
+        if (str[i] == pf.omit)
+        {
+            // Use the same strategy as unique() here
+            str[i] = (pf.mapto != '\0') ? pf.mapto : ' ';
+        }
 
         i++;
     }
 
+    alpha(str, len);
 }
 
 //------------------------------------------------------------------------|
@@ -311,7 +319,7 @@ static void mapchar(char * str, size_t len)
 static void nonces(char * str, size_t len)
 {
     size_t i = 0;
-    while((i < len) && (str[i] != '\0'))
+    while ((i < len) && (str[i] != '\0'))
     {
 
         i++;
@@ -319,28 +327,20 @@ static void nonces(char * str, size_t len)
 }
 
 //------------------------------------------------------------------------|
-// Common filter for passphrase or message prior to encode or decode.
-// This removes non-alpha characters, forces all to uppercase, and removes
-// the ommitted letter, optionally substituting with the mapped letter.
-// This operates on the string in-place assuming we are using memory given
-// to this process by the environment (the command line itself) 
-static bool filter(char * str, bool isPass)
+static bool filterpw(char * str)
 {
     size_t len = strlen(str);
 
     if(pf.verbose)
     {
-        printf("%s\n", isPass ? "passphrase" : "message");
+        printf("%s\n", __FUNCTION__);
         printf("    raw:      \'%s\'\n", str);
     }
 
     alpha(str, len);
     upper(str, len);
-    unique(str, len);
-
     mapchar(str, len);
-
-    nonces(str, len);
+    unique(str, len);
 
     if(pf.verbose)
     {
@@ -351,17 +351,42 @@ static bool filter(char * str, bool isPass)
 }
 
 //------------------------------------------------------------------------|
+static bool filtermsg(char * str)
+{
+    size_t len = strlen(str);
+
+    if(pf.verbose)
+    {
+        printf("%s\n", __FUNCTION__);
+        printf("    raw:      \'%s\'\n", str);
+    }
+
+    alpha(str, len);
+    upper(str, len);
+    mapchar(str, len);
+    nonces(str, len);
+
+    if(pf.verbose)
+    {
+        printf("    filtered: \'%s\'\n", str);
+    }    
+
+    return true;
+}
+
+
+//------------------------------------------------------------------------|
 static void setup()
 {
     // Prepare the passphrase
-    if (!filter(pf.passphrase, true))
+    if (!filterpw(pf.passphrase))
     {
         printf("ERROR: Filter passphrase failed\n");
         quit(2);
     }
 
     // Prepare the message
-    if (!filter(pf.message, false))
+    if (!filtermsg(pf.message))
     {
         printf("ERROR: Filter message failed\n");
         quit(3);
