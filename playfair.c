@@ -318,11 +318,25 @@ static void mapchar(char * str, size_t len)
 // message only.
 static void nonces(char * str, size_t len)
 {
-    size_t i = 0;
+    size_t i = 1;
     while ((i < len) && (str[i] != '\0'))
     {
+        if (str[i - 1] == str[i])
+        {
+            // memmove is overlap-safe.  move the remainder back
+            memmove(str + i + 1, str + i, len - i);
+            str[i] = pf.nonce;
+            len++; 
+        }
 
         i++;
+    }
+
+    // require an even number of characters
+    if (len & 1)
+    {
+        str[len++] = pf.nonce;
+        str[len] = '\0';
     }
 }
 
