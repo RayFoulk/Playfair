@@ -30,10 +30,10 @@
 #include <ctype.h>
 
 //------------------------------------------------------------------------|
-#define MESSAGE_SIZE_MAX        2048
-#define KEYBLOCK_WIDTH          5
-#define KEYBLOCK_HEIGHT         5
-#define KEYBLOCK_SIZE           (KEYBLOCK_WIDTH * KEYBLOCK_HEIGHT)
+#define MSG_SIZE_MAX       2048
+#define KEY_WIDTH          5
+#define KEY_HEIGHT         5
+#define KEY_SIZE           (KEY_WIDTH * KEY_HEIGHT)
 
 #define MAX(a,b) ({ __typeof__ (a) _a = (a); \
                     __typeof__ (b) _b = (b); \
@@ -46,8 +46,6 @@
 //------------------------------------------------------------------------|
 typedef struct
 {
-    //char keyblock[KEYBLOCK_WIDTH][KEYBLOCK_HEIGHT];
-
     // Playfair must omit 1 letter (Typically J or Q)
     // And optionally map it to another character (Typically J to I)
     // It must also consider a specific character as a nonce (Typically X)
@@ -56,7 +54,8 @@ typedef struct
     char nonce;
 
     // Pointers to the passphrase and message to encrypt/decrypt
-    char * passphrase;
+    char * key;
+    size_t keysize;
     char * msg;
     size_t msgsize;
 
@@ -72,12 +71,13 @@ static playfair_t pf;
 //------------------------------------------------------------------------|
 static void init()
 {
-    //memset(pf.keyblock, 0, KEYBLOCK_SIZE);
+    //memset(pf.keyblock, 0, KEY_SIZE);
 
     pf.omit = 'J';
     pf.mapto = 'I';
     pf.nonce = 'X';
-    pf.passphrase = NULL;
+    pf.key = NULL;
+    pf.keysize = 0;
     pf.msg = NULL;
     pf.msgsize = 0;
     pf.verbose = false;
@@ -94,7 +94,46 @@ static void quit(int error)
         pf.msg = NULL;
     }
 
+    if (pf.key != NULL)
+    {
+        free(pf.key);
+        pf.key = NULL;
+    }
+
     exit(error);
+}
+
+//------------------------------------------------------------------------|
+// Allocate a passphrase/key buffer based on the command-line passphrase
+// given
+static void allockey(const char * key)
+{
+    size_t len = strlen(key);
+
+    // Avoid double-allocating in case of multiple passphrases provided
+    // use the last one given.
+    if (pf.key != NULL)
+    {
+        free(pf.key);
+        pf.key = NULL;
+    }
+
+    // The passphrase given will most likely shrink from what is provided
+    // as duplicate characters are cancelled out.  This buffer is also
+    // used later directly as the keyblock, so it cannot go below the
+    // keyblock size because it will get populated with the remainder
+    // of the alphabet.  Pad the length a little for safety.
+    pf.keysize = MAX(KEY_SIZE, len) + 2;
+    pf.key = (char *) malloc(pf.keysize);
+
+    if (pf.key == NULL)
+    {
+        printf("ERROR: Could not allocate passphrase/key buffer!\n");
+        quit(4);
+    }
+
+    memset(pf.key, 0, pf.keysize);
+    strncpy(pf.key, key, len + 1);
 }
 
 //------------------------------------------------------------------------|
@@ -116,13 +155,13 @@ static void allocmsg(const char * msg)
     // worst case scenario is an odd number of repeated characters,
     // resulting in ciphertext twice as long as the original message.
     // add a little padding just to be on the safe side.
-    pf.msgsize = MIN(len * 2 + 2, MESSAGE_SIZE_MAX);
+    pf.msgsize = MIN(len * 2 + 2, MSG_SIZE_MAX);
     pf.msg = (char *) malloc(pf.msgsize);
 
     if (pf.msg == NULL)
     {
         printf("ERROR: Could not allocate message buffer!\n");
-        quit(4);
+        quit(5);
     }
 
     memset(pf.msg, 0, pf.msgsize);
@@ -182,8 +221,8 @@ static void parse(int argc, char *argv[])
                 break;
 
             case 'p':
-                // Set the passphrase pointer
-                pf.passphrase = optarg;
+                // Set the passphrase
+                allockey(optarg);
                 break;
 
             case 'e':
@@ -206,7 +245,7 @@ static void parse(int argc, char *argv[])
     }
 
     // Require at least a passphrase and a message
-    if (pf.passphrase == NULL)
+    if (pf.key == NULL)
     {
         printf("ERROR: No passphrase was given\n");
         help(argv[0], opts);
@@ -341,7 +380,16 @@ static void nonces(char * str, size_t len)
 }
 
 //------------------------------------------------------------------------|
-static bool filterpw(char * str)
+// Treating the passphrase/key buffer as the keyblock, fill in the
+// remainder of the (restricted) alphabet.
+static void fillkey(char * str, size_t len)
+{
+
+}
+
+
+//------------------------------------------------------------------------|
+static bool filterkey(char * str)
 {
     size_t len = strlen(str);
 
@@ -351,10 +399,12 @@ static bool filterpw(char * str)
         printf("    raw:      \'%s\'\n", str);
     }
 
+    // I question the validity of this length...
     alpha(str, len);
     upper(str, len);
     mapchar(str, len);
     unique(str, len);
+    fillkey(str, len);
 
     if(pf.verbose)
     {
@@ -383,7 +433,7 @@ static bool filtermsg(char * str)
     if(pf.verbose)
     {
         printf("    filtered: \'%s\'\n", str);
-    }    
+    }
 
     return true;
 }
@@ -393,7 +443,7 @@ static bool filtermsg(char * str)
 static void setup()
 {
     // Prepare the passphrase
-    if (!filterpw(pf.passphrase))
+    if (!filterkey(pf.key))
     {
         printf("ERROR: Filter passphrase failed\n");
         quit(2);
@@ -405,10 +455,6 @@ static void setup()
         printf("ERROR: Filter message failed\n");
         quit(3);
     }
-
-    // populate keyblock
-       
-
 }
 
 //------------------------------------------------------------------------|
