@@ -360,6 +360,8 @@ static void nonces(char * str, size_t len)
     size_t i = 1;
     while ((i < len) && (str[i] != '\0'))
     {
+        // FIXME: Only need to insert nonces if repeated char is within
+        // a pair of letter (i is odd? - check least bit)
         if (str[i - 1] == str[i])
         {
             // memmove is overlap-safe.  move the remainder back
@@ -382,18 +384,47 @@ static void nonces(char * str, size_t len)
 //------------------------------------------------------------------------|
 // Treating the passphrase/key buffer as the keyblock, fill in the
 // remainder of the (restricted) alphabet.
-static void fillkey(char * str, size_t len)
+static void fillkey(char * str)
 {
+    size_t len = strlen(str);
+    char letter;
+    int i;
 
+    // Ensure that every letter other than the omitted leter is present
+    for (letter = 'A'; letter <= 'Z'; letter++)
+    {
+        if (letter == pf.omit)
+        {
+            continue;
+        }
+
+        i = 0;
+        len = strlen(str);
+        while ((i < len) && (str[i] != '\0') && (letter != str[i]))
+        {
+            i++;
+        }
+
+        if (letter != str[i])
+        {
+            str[len++] = letter;
+            str[len] = '\0';
+        }
+    }
+
+    if (len != KEY_SIZE)
+    {
+        printf("ERROR: Invalid key block size: %zu\n", len);
+        quit(6);
+    }
 }
-
 
 //------------------------------------------------------------------------|
 static bool filterkey(char * str)
 {
     size_t len = strlen(str);
 
-    if(pf.verbose)
+    if (pf.verbose)
     {
         printf("%s\n", __FUNCTION__);
         printf("    raw:      \'%s\'\n", str);
@@ -404,12 +435,12 @@ static bool filterkey(char * str)
     upper(str, len);
     mapchar(str, len);
     unique(str, len);
-    fillkey(str, len);
+    fillkey(str);
 
-    if(pf.verbose)
+    if (pf.verbose)
     {
         printf("    filtered: \'%s\'\n", str);
-    }    
+    }
 
     return true;
 }
@@ -419,7 +450,7 @@ static bool filtermsg(char * str)
 {
     size_t len = strlen(str);
 
-    if(pf.verbose)
+    if (pf.verbose)
     {
         printf("%s\n", __FUNCTION__);
         printf("    raw:      \'%s\'\n", str);
@@ -430,7 +461,7 @@ static bool filtermsg(char * str)
     mapchar(str, len);
     nonces(str, len);
 
-    if(pf.verbose)
+    if (pf.verbose)
     {
         printf("    filtered: \'%s\'\n", str);
     }
