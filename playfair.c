@@ -46,7 +46,7 @@
 //------------------------------------------------------------------------|
 typedef struct
 {
-    char keyblock[KEYBLOCK_WIDTH][KEYBLOCK_HEIGHT];
+    //char keyblock[KEYBLOCK_WIDTH][KEYBLOCK_HEIGHT];
 
     // Playfair must omit 1 letter (Typically J or Q)
     // And optionally map it to another character (Typically J to I)
@@ -57,7 +57,7 @@ typedef struct
 
     // Pointers to the passphrase and message to encrypt/decrypt
     char * passphrase;
-    char * message;
+    char * msg;
     size_t msgsize;
 
     // Options
@@ -72,13 +72,13 @@ static playfair_t pf;
 //------------------------------------------------------------------------|
 static void init()
 {
-    memset(pf.keyblock, 0, KEYBLOCK_SIZE);
+    //memset(pf.keyblock, 0, KEYBLOCK_SIZE);
 
     pf.omit = 'J';
     pf.mapto = 'I';
     pf.nonce = 'X';
     pf.passphrase = NULL;
-    pf.message = NULL;
+    pf.msg = NULL;
     pf.msgsize = 0;
     pf.verbose = false;
     pf.encode = true;
@@ -88,10 +88,10 @@ static void init()
 static void quit(int error)
 {
     // Cleanup...
-    if (pf.message != NULL)
+    if (pf.msg != NULL)
     {
-        free(pf.message);
-        pf.message = NULL;
+        free(pf.msg);
+        pf.msg = NULL;
     }
 
     exit(error);
@@ -99,16 +99,16 @@ static void quit(int error)
 
 //------------------------------------------------------------------------|
 // Allocate a message buffer based on the command-line message given
-static void message(const char * msg)
+static void allocmsg(const char * msg)
 {
     size_t len = strlen(msg);
 
     // This could be a problem if encode and decode options are both
     // specified.  The last once given will be used.
-    if (pf.message != NULL)
+    if (pf.msg != NULL)
     {
-        free(pf.message);
-        pf.message = NULL;
+        free(pf.msg);
+        pf.msg = NULL;
     }
 
     // The cipher message length may be shorter or longer than the
@@ -117,16 +117,16 @@ static void message(const char * msg)
     // resulting in ciphertext twice as long as the original message.
     // add a little padding just to be on the safe side.
     pf.msgsize = MIN(len * 2 + 2, MESSAGE_SIZE_MAX);
-    pf.message = (char *) malloc(pf.msgsize);
+    pf.msg = (char *) malloc(pf.msgsize);
 
-    if (pf.message == NULL)
+    if (pf.msg == NULL)
     {
         printf("ERROR: Could not allocate message buffer!\n");
         quit(4);
     }
 
-    memset(pf.message, 0, pf.msgsize);
-    strncpy(pf.message, msg, len + 1);
+    memset(pf.msg, 0, pf.msgsize);
+    strncpy(pf.msg, msg, len + 1);
 }
 
 //------------------------------------------------------------------------|
@@ -189,13 +189,13 @@ static void parse(int argc, char *argv[])
             case 'e':
                 // Encode a message
                 pf.encode = true;
-                message(optarg);
+                allocmsg(optarg);
                 break;
 
             case 'd':
                 // Decode a message
                 pf.encode = false;
-                message(optarg);
+                allocmsg(optarg);
                 break;
 
             case 'h':
@@ -212,7 +212,7 @@ static void parse(int argc, char *argv[])
         help(argv[0], opts);
     }
 
-    if (pf.message == NULL)
+    if (pf.msg == NULL)
     {
         printf("ERROR: No message was given\n");
         help(argv[0], opts);
@@ -400,7 +400,7 @@ static void setup()
     }
 
     // Prepare the message
-    if (!filtermsg(pf.message))
+    if (!filtermsg(pf.msg))
     {
         printf("ERROR: Filter message failed\n");
         quit(3);
