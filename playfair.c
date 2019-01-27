@@ -495,6 +495,7 @@ static void filtermsg(char * str)
 }
 
 //------------------------------------------------------------------------|
+// Given a letter, find its keyblock coordinates
 static void lookup(char c, size_t * col, size_t * row)
 {
     for (*col = 0; *col < KEY_WIDTH; (*col)++)
@@ -513,6 +514,13 @@ static void lookup(char c, size_t * col, size_t * row)
 }
 
 //------------------------------------------------------------------------|
+// Given keyblock coordinates, get the letter
+static char keyletter(size_t col, size_t row)
+{
+    return pf.key[KEY_HEIGHT * row + col];
+}
+
+//------------------------------------------------------------------------|
 static void encodepair(char first, char second)
 {
     size_t col[2] = { 0, 0 };
@@ -527,6 +535,8 @@ static void encodepair(char first, char second)
             col[0], row[0], col[1], row[1]);
     }
 
+    // Two letters in the same column
+    //if (
 
 }
 
