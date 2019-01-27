@@ -261,12 +261,12 @@ static void parse(int argc, char *argv[])
 //------------------------------------------------------------------------|
 // Keep only alphabetic characters, discarding the rest.  This will be
 // used for the message and the passphrase.
-static void alpha(char * str, size_t len)
+static void alpha(char * str)
 {
     size_t i = 0;  // source
     size_t j = 0;  // destination
 
-    while ((i < len) && (str[i] != '\0'))
+    while (str[i] != '\0')
     {
         if (isalpha(str[i]))
         {
@@ -287,10 +287,11 @@ static void alpha(char * str, size_t len)
 //------------------------------------------------------------------------|
 // Convert all letters to uppercase.  This will be used to the message
 // and the passphrase.
-static void upper(char * str, size_t len)
+static void upper(char * str)
 {
     size_t i = 0;
-    while ((i < len) && (str[i] != '\0'))
+
+    while (str[i] != '\0')
     {
         if (isalpha(str[i]))
         {
@@ -304,17 +305,16 @@ static void upper(char * str, size_t len)
 //------------------------------------------------------------------------|
 // Remove duplicate alpha characters, keeping only uniquely occuring ones.
 // This will be used for the passphrase only.
-static void unique(char * str, size_t len)
+static void unique(char * str)
 {
     size_t i = 0;
     size_t j = 0;
 
-    while ((i < len) && (str[i] != '\0'))
+    while (str[i] != '\0')
     {
         j = i + 1;
-        while ((j < len) && (str[j] != '\0'))
+        while (str[j] != '\0')
         {
-
             // Simply mark the char non-alpha then call alpha() later.
             // Alternatively we could call memmove() multiple times,
             // but this is much simpler.
@@ -329,16 +329,17 @@ static void unique(char * str, size_t len)
         i++;
     }
 
-    alpha(str, len);
+    alpha(str);
 }
 
 //------------------------------------------------------------------------|
 // Remove ommitted letter and optionally substitue with mapped character.
 // This should be done both for the passphrase and the message.
-static void mapchar(char * str, size_t len)
+static void mapchar(char * str)
 {
     size_t i = 0;
-    while ((i < len) && (str[i] != '\0'))
+
+    while (str[i] != '\0')
     {
         if (str[i] == pf.omit)
         {
@@ -349,20 +350,22 @@ static void mapchar(char * str, size_t len)
         i++;
     }
 
-    alpha(str, len);
+    alpha(str);
 }
 
 //------------------------------------------------------------------------|
 // Insert nonces between repeated characters.  This will be used for the
 // message only.
-static void nonces(char * str, size_t len)
+static void nonces(char * str)
 {
+    size_t len = strlen(str);
     size_t i = 1;
-    while ((i < len) && (str[i] != '\0'))
+
+    while (str[i] != '\0')
     {
-        // FIXME: Only need to insert nonces if repeated char is within
+        // Only need to insert nonces if repeated char is within
         // a pair of letter (i is odd? - check least bit)
-        if (str[i - 1] == str[i])
+        if ((str[i - 1] == str[i]) && (i & 1))
         {
             // memmove is overlap-safe.  move the remainder back
             memmove(str + i + 1, str + i, len - i);
@@ -373,9 +376,19 @@ static void nonces(char * str, size_t len)
         i++;
     }
 
-    // require an even number of characters
+    // require an even number of characters by appending a nonce.
+    // Check for case of intentional nonces, and refuse to encode
+    // Such a message: We could perhaps work around this case
+    // programmatically, but here we just leave it to the user
     if (len & 1)
     {
+        if (str[len - 1] == pf.nonce)
+        {
+            printf("ERROR: Cannot encode message with badly placed"
+                " intentional nonces\n");
+            quit(7);
+        }
+
         str[len++] = pf.nonce;
         str[len] = '\0';
     }
@@ -393,11 +406,13 @@ static void fillkey(char * str)
     // Ensure that every letter other than the omitted leter is present
     for (letter = 'A'; letter <= 'Z'; letter++)
     {
+        // Skip the ommitted letter.
         if (letter == pf.omit)
         {
             continue;
         }
 
+        // Walk through looking for the current letter
         i = 0;
         len = strlen(str);
         while ((i < len) && (str[i] != '\0') && (letter != str[i]))
@@ -405,6 +420,7 @@ static void fillkey(char * str)
             i++;
         }
 
+        // If the letter was not found, append it to the end
         if (letter != str[i])
         {
             str[len++] = letter;
@@ -412,6 +428,7 @@ static void fillkey(char * str)
         }
     }
 
+    // Sanity check that the key block is correctly sized
     if (len != KEY_SIZE)
     {
         printf("ERROR: Invalid key block size: %zu\n", len);
@@ -422,8 +439,6 @@ static void fillkey(char * str)
 //------------------------------------------------------------------------|
 static bool filterkey(char * str)
 {
-    size_t len = strlen(str);
-
     if (pf.verbose)
     {
         printf("%s\n", __FUNCTION__);
@@ -431,10 +446,10 @@ static bool filterkey(char * str)
     }
 
     // I question the validity of this length...
-    alpha(str, len);
-    upper(str, len);
-    mapchar(str, len);
-    unique(str, len);
+    alpha(str);
+    upper(str);
+    mapchar(str);
+    unique(str);
     fillkey(str);
 
     if (pf.verbose)
@@ -448,18 +463,16 @@ static bool filterkey(char * str)
 //------------------------------------------------------------------------|
 static bool filtermsg(char * str)
 {
-    size_t len = strlen(str);
-
     if (pf.verbose)
     {
         printf("%s\n", __FUNCTION__);
         printf("    raw:      \'%s\'\n", str);
     }
 
-    alpha(str, len);
-    upper(str, len);
-    mapchar(str, len);
-    nonces(str, len);
+    alpha(str);
+    upper(str);
+    mapchar(str);
+    nonces(str);
 
     if (pf.verbose)
     {
