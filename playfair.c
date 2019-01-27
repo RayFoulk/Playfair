@@ -495,23 +495,63 @@ static void filtermsg(char * str)
 }
 
 //------------------------------------------------------------------------|
-static void encode()
+static void lookup(char c, size_t * col, size_t * row)
+{
+    for (*col = 0; *col < KEY_WIDTH; (*col)++)
+    {
+        for (*row = 0; *row < KEY_HEIGHT; (*row)++)
+        {
+            if (pf.key[KEY_HEIGHT * (*row) + (*col)] == c)
+            {
+                return;
+            }
+        }
+    }
+
+    printf("ERROR: lookup(%c) failed\n", c);
+    quit(8);
+}
+
+//------------------------------------------------------------------------|
+static void encodepair(char first, char second)
+{
+    size_t col[2] = { 0, 0 };
+    size_t row[2] = { 0, 0 };
+
+    lookup(first, &col[0], &row[0]);
+    lookup(second, &col[1], &row[1]);
+
+    if (pf.verbose)
+    {
+        printf("%c%c %zu,%zu %zu,%zu\n", first, second,
+            col[0], row[0], col[1], row[1]);
+    }
+
+
+}
+
+//------------------------------------------------------------------------|
+static void decodepair(char first, char second)
+{
+
+}
+
+//------------------------------------------------------------------------|
+static void encodemsg()
 {
     size_t len = strlen(pf.msg);
     size_t i = 0;
 
     for (i = 0; i < len; i += 2)
     {
-
-        printf("%c%c ", pf.msg[i], pf.msg[i + 1]);
-
+        encodepair(pf.msg[i], pf.msg[i + 1]);
     }
 }
 
 //------------------------------------------------------------------------|
-static void decode()
+static void decodemsg()
 {
-
+    decodepair(0, 0);
 }
 
 //------------------------------------------------------------------------|
@@ -525,11 +565,11 @@ int main(int argc, char * argv[])
 
     if (pf.encode)
     {
-        encode();
+        encodemsg();
     }
     else
     {
-        decode();
+        decodemsg();
     }
 
     quit(0);
