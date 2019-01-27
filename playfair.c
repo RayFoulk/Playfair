@@ -439,6 +439,8 @@ static void fillkey(char * str)
 //------------------------------------------------------------------------|
 static bool filterkey(char * str)
 {
+    size_t i = 0;
+
     if (pf.verbose)
     {
         printf("%s\n", __FUNCTION__);
@@ -455,6 +457,20 @@ static bool filterkey(char * str)
     if (pf.verbose)
     {
         printf("    filtered: \'%s\'\n", str);
+
+        printf("\n");
+        while (str[i] != '\0')
+        {
+            printf("%c%c ", str[i], (str[i] == pf.mapto) ? pf.omit : ' ');
+
+            if (i % KEY_WIDTH == (KEY_WIDTH - 1))
+            {
+                printf("\n");
+            }
+
+            i++;
+        }
+        printf("\n");
     }
 
     return true;
@@ -476,7 +492,7 @@ static bool filtermsg(char * str)
 
     if (pf.verbose)
     {
-        printf("    filtered: \'%s\'\n", str);
+        printf("    filtered: \'%s\'\n\n", str);
     }
 
     return true;
