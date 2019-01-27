@@ -376,7 +376,7 @@ static void nonces(char * str)
         i++;
     }
 
-    // require an even number of characters by appending a nonce.
+    // Require an even number of characters by appending a nonce.
     // Check for case of intentional nonces, and refuse to encode
     // Such a message: We could perhaps work around this case
     // programmatically, but here we just leave it to the user
@@ -437,7 +437,7 @@ static void fillkey(char * str)
 }
 
 //------------------------------------------------------------------------|
-static bool filterkey(char * str)
+static void filterkey(char * str)
 {
     size_t i = 0;
 
@@ -472,12 +472,10 @@ static bool filterkey(char * str)
         }
         printf("\n");
     }
-
-    return true;
 }
 
 //------------------------------------------------------------------------|
-static bool filtermsg(char * str)
+static void filtermsg(char * str)
 {
     if (pf.verbose)
     {
@@ -494,40 +492,26 @@ static bool filtermsg(char * str)
     {
         printf("    filtered: \'%s\'\n\n", str);
     }
-
-    return true;
 }
 
-
 //------------------------------------------------------------------------|
-static void setup()
+static void encode()
 {
-    // Prepare the passphrase
-    if (!filterkey(pf.key))
-    {
-        printf("ERROR: Filter passphrase failed\n");
-        quit(2);
-    }
+    size_t len = strlen(pf.msg);
+    size_t i = 0;
 
-    // Prepare the message
-    if (!filtermsg(pf.msg))
+    for (i = 0; i < len; i += 2)
     {
-        printf("ERROR: Filter message failed\n");
-        quit(3);
+
+        printf("%c%c ", pf.msg[i], pf.msg[i + 1]);
+
     }
 }
 
 //------------------------------------------------------------------------|
-static void cipher()
+static void decode()
 {
-    if (pf.encode)
-    {
 
-    }
-    else
-    {
-
-    }
 }
 
 //------------------------------------------------------------------------|
@@ -536,8 +520,17 @@ int main(int argc, char * argv[])
     init();
     parse(argc, argv);
 
-    setup();
-    cipher();
+    filterkey(pf.key);
+    filtermsg(pf.msg);
+
+    if (pf.encode)
+    {
+        encode();
+    }
+    else
+    {
+        decode();
+    }
 
     quit(0);
     return 0;
