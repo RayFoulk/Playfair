@@ -531,7 +531,7 @@ static void encodepair(char first, char second)
 
     if (pf.verbose)
     {
-        printf("%c%c %zu,%zu %zu,%zu\n", first, second,
+        printf("\n%c%c %zu,%zu %zu,%zu => ", first, second,
             col[0], row[0], col[1], row[1]);
     }
 
@@ -545,12 +545,17 @@ static void encodepair(char first, char second)
     // Two letters in the same row
     else if (row[0] == row[1])
     {
-        printf("%c%c", keyletter((col[0]) % KEY_WIDTH,
-                                 (row[0] + 1) % KEY_HEIGHT),
-                       keyletter((col[1] + 1) % KEY_WIDTH,
-                                 (row[1] + 1) % KEY_HEIGHT));
-
+        printf("%c%c", keyletter((col[0] + 1) % KEY_WIDTH, row[0]),
+                       keyletter((col[1] + 1) % KEY_WIDTH, row[1]));
     }
+
+    // Two letters form the corners of a rectangle
+    else
+    {
+        printf("%c%c", keyletter(col[1], row[0]),
+                       keyletter(col[0], row[1]));
+    }
+
 
 
 }
@@ -571,6 +576,8 @@ static void encodemsg()
     {
         encodepair(pf.msg[i], pf.msg[i + 1]);
     }
+
+    printf("\n");
 }
 
 //------------------------------------------------------------------------|
