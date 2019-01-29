@@ -71,8 +71,6 @@ static playfair_t pf;
 //------------------------------------------------------------------------|
 static void init()
 {
-    //memset(pf.keyblock, 0, KEY_SIZE);
-
     pf.omit = 'J';
     pf.mapto = 'I';
     pf.nonce = 'X';
@@ -486,6 +484,10 @@ static void filtermsg(char * str)
     alpha(str);
     upper(str);
     mapchar(str);
+
+    // Should only need to insert nonces for encode, but could get
+    // a partial ciphertext that potentially requires appended nonce.
+    // Ciphertext should also be unique pairs.  No harm done.
     nonces(str);
 
     if (pf.verbose)
@@ -502,7 +504,7 @@ static void lookup(char c, size_t * col, size_t * row)
     {
         for (*row = 0; *row < KEY_HEIGHT; (*row)++)
         {
-            if (pf.key[KEY_HEIGHT * (*row) + (*col)] == c)
+            if (keyletter(*col, *row) == c)
             {
                 return;
             }
@@ -555,14 +557,46 @@ static void encodepair(char first, char second)
         printf("%c%c", keyletter(col[1], row[0]),
                        keyletter(col[0], row[1]));
     }
-
-
-
 }
 
 //------------------------------------------------------------------------|
 static void decodepair(char first, char second)
 {
+    size_t col[2] = { 0, 0 };
+    size_t row[2] = { 0, 0 };
+
+    lookup(first, &col[0], &row[0]);
+    lookup(second, &col[1], &row[1]);
+
+    if (pf.verbose)
+    {
+        printf("\n%c%c %zu,%zu %zu,%zu => ", first, second,
+            col[0], row[0], col[1], row[1]);
+    }
+
+    // Two letters in the same column
+    if (col[0] == col[1])
+    {
+        // modulo trick is not possible due to potential underflow
+        printf("%c%c", keyletter(col[0], (row[0] == 0) ?
+                           (KEY_HEIGHT - 1) : (row[0] - 1)),
+                       keyletter(col[1], (row[1] == 0) ?
+                           (KEY_HEIGHT - 1) : (row[1] - 1));
+    }
+
+    // Two letters in the same row
+    else if (row[0] == row[1])
+    {
+        printf("%c%c", keyletter((col[0] + 1) % KEY_WIDTH, row[0]),
+                       keyletter((col[1] + 1) % KEY_WIDTH, row[1]));
+    }
+
+    // Two letters form the corners of a rectangle
+    else
+    {
+        printf("%c%c", keyletter(col[1], row[0]),
+                       keyletter(col[0], row[1]));
+    }
 
 }
 
