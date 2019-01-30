@@ -528,6 +528,8 @@ static void encodepair(char first, char second)
     size_t col[2] = { 0, 0 };
     size_t row[2] = { 0, 0 };
 
+    // disallow this on encode, which shouldn't happen anyway since the
+    // message has been filtered through nonce().
     if (first == second)
     {
         printf("ERROR: %s(%c, %c) Invalid pair\n", __FUNCTION__,
@@ -572,16 +574,6 @@ static void decodepair(char first, char second)
     size_t col[2] = { 0, 0 };
     size_t row[2] = { 0, 0 };
 
-    if (first == second)
-    {
-        //printf("ERROR: %s(%c, %c) Invalid pair\n", __FUNCTION__,
-        //    first, second);
-        //quit(9);
-
-        // JFK test case contains incorrectly nonced plaintext pair
-        printf("%c%c", first, second);
-    }
-
     lookup(first, &col[0], &row[0]);
     lookup(second, &col[1], &row[1]);
 
@@ -591,8 +583,15 @@ static void decodepair(char first, char second)
             col[0], row[0], col[1], row[1]);
     }
 
+    // Allow plaintext doublets (identical pair) in decode, since
+    // JFK test case contains incorrectly nonced plaintext pair.
+    if (first == second)
+    {
+        printf("%c%c", first, second);
+    }
+
     // Two letters in the same column
-    if (col[0] == col[1])
+    else if (col[0] == col[1])
     {
         // modulo trick is not possible due to potential underflow
         printf("%c%c", keyletter(col[0], (row[0] == 0) ?
