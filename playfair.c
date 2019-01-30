@@ -445,7 +445,6 @@ static void filterkey(char * str)
         printf("    raw:      \'%s\'\n", str);
     }
 
-    // I question the validity of this length...
     alpha(str);
     upper(str);
     mapchar(str);
@@ -485,15 +484,23 @@ static void filtermsg(char * str)
     upper(str);
     mapchar(str);
 
-    // Should only need to insert nonces for encode, but could get
-    // a partial ciphertext that potentially requires appended nonce.
-    // Ciphertext should also be unique pairs.  No harm done.
-    nonces(str);
+    // Should only need to insert nonces for encode
+    if (pf.encode)
+    {
+        nonces(str);
+    }
 
     if (pf.verbose)
     {
         printf("    filtered: \'%s\'\n\n", str);
     }
+}
+
+//------------------------------------------------------------------------|
+// Given keyblock coordinates, get the letter
+static char keyletter(size_t col, size_t row)
+{
+    return pf.key[KEY_HEIGHT * row + col];
 }
 
 //------------------------------------------------------------------------|
@@ -516,24 +523,24 @@ static void lookup(char c, size_t * col, size_t * row)
 }
 
 //------------------------------------------------------------------------|
-// Given keyblock coordinates, get the letter
-static char keyletter(size_t col, size_t row)
-{
-    return pf.key[KEY_HEIGHT * row + col];
-}
-
-//------------------------------------------------------------------------|
 static void encodepair(char first, char second)
 {
     size_t col[2] = { 0, 0 };
     size_t row[2] = { 0, 0 };
+
+    if (first == second)
+    {
+        printf("ERROR: %s(%c, %c) Invalid pair\n", __FUNCTION__,
+            first, second);
+        quit(9);
+    }
 
     lookup(first, &col[0], &row[0]);
     lookup(second, &col[1], &row[1]);
 
     if (pf.verbose)
     {
-        printf("\n%c%c %zu,%zu %zu,%zu => ", first, second,
+        printf("\n%c%c %zu,%zu %zu,%zu -> ", first, second,
             col[0], row[0], col[1], row[1]);
     }
 
@@ -565,12 +572,19 @@ static void decodepair(char first, char second)
     size_t col[2] = { 0, 0 };
     size_t row[2] = { 0, 0 };
 
+    if (first == second)
+    {
+        printf("ERROR: %s(%c, %c) Invalid pair\n", __FUNCTION__,
+            first, second);
+        quit(9);
+    }
+
     lookup(first, &col[0], &row[0]);
     lookup(second, &col[1], &row[1]);
 
     if (pf.verbose)
     {
-        printf("\n%c%c %zu,%zu %zu,%zu => ", first, second,
+        printf("\n%c%c %zu,%zu %zu,%zu -> ", first, second,
             col[0], row[0], col[1], row[1]);
     }
 
@@ -579,16 +593,18 @@ static void decodepair(char first, char second)
     {
         // modulo trick is not possible due to potential underflow
         printf("%c%c", keyletter(col[0], (row[0] == 0) ?
-                           (KEY_HEIGHT - 1) : (row[0] - 1)),
+                                 (KEY_HEIGHT - 1) : (row[0] - 1)),
                        keyletter(col[1], (row[1] == 0) ?
-                           (KEY_HEIGHT - 1) : (row[1] - 1));
+                                 (KEY_HEIGHT - 1) : (row[1] - 1)));
     }
 
     // Two letters in the same row
     else if (row[0] == row[1])
     {
-        printf("%c%c", keyletter((col[0] + 1) % KEY_WIDTH, row[0]),
-                       keyletter((col[1] + 1) % KEY_WIDTH, row[1]));
+        printf("%c%c", keyletter((col[0] == 0) ? (KEY_WIDTH - 1) :
+                                 (col[0] - 1), row[0]),
+                       keyletter((col[1] == 0) ? (KEY_WIDTH - 1) :
+                                 (col[1] - 1), row[1]));
     }
 
     // Two letters form the corners of a rectangle
@@ -617,7 +633,16 @@ static void encodemsg()
 //------------------------------------------------------------------------|
 static void decodemsg()
 {
-    decodepair(0, 0);
+    size_t len = strlen(pf.msg);
+    size_t i = 0;
+
+    for (i = 0; i < len; i += 2)
+    {
+        decodepair(pf.msg[i], pf.msg[i + 1]);
+    }
+
+    printf("\n");
+
 }
 
 //------------------------------------------------------------------------|
