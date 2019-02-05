@@ -31,6 +31,9 @@
 # against the provided ciphertext, and grep the output for the provided
 # regular expression, filtering out everything that doesn't match.
 
+dictionary[0]=""
+dictEntries=0
+
 ##------------------------------------------------------------------------|
 function playcrack_load_dictionary
 {
@@ -50,47 +53,68 @@ function playcrack_load_dictionary
     fi
 
     # Read in dictionary file to array
+    dictEntry=1
+    while [ $dictEntry -le $dictEntries ]
+    do
+        # Get the word
+        dictionary[$dictEntry]=`sed -n "$dictEntry p" "$1"`
+        #echo "dictWord: ${dictionary[$dictEntry]}"
+        dictEntry=$[$dictEntry+1]
+    done
 }
 
-##-----------------------------------------------------------------------##
-function playcrack_next {
-  # check for existance of input database file
+##------------------------------------------------------------------------|
+function playcrack_try_passphrase
+{
 
-    # check for empty database
-    if [ $range_entries -eq 0 ]
+}
+
+##------------------------------------------------------------------------|
+function playcrack_iterate_single
+{
+    firstWord=1
+    while [ $dictEntry -le $dictEntries ]
+    do
+        # Get the word
+        dictionary[$dictEntry]=`sed -n "$dictEntry p" "$1"`
+        #echo "dictWord: ${dictionary[$dictEntry]}"
+        dictEntry=$[$dictEntry+1]
+    done
+    
+}
+
+##------------------------------------------------------------------------|
+function playcrack_iterate_double
+{
+
+}
+
+##------------------------------------------------------------------------|
+function playcrack_iterate_triple
+{
+
+}
+
+##------------------------------------------------------------------------|
+function playcrack_main
+{
+    # show help if not enough arguments
+    if [ -z "$3" ]
     then
-      echo "error: address database is empty"
-    else
-      # generate a random line number
-      range_random=$RANDOM
-      #let "range_random %= $range_entries"
-      range_random=$[$range_random%$range_entries]
-      range_random=$[$range_random+1]
-
-      # get and remove the address at the specified line
-      address=`sed -n "$range_random p" "$range_db_in"`
-
-      # report address and record to output database
-      echo "$address"
+        echo "usage: ./playcrack.sh <dictionary-file> <ciphertext> <expect-regex>"
+        echo
+        echo "The ./playfair executable is expected to be in the path"
+        echo
+        exit 1
     fi
-  fi
-}
 
-##-----------------------------------------------------------------------##
-function playcrack_main {
-  # show help if not enough arguments
-  if [ -z "$3" ]
-  then
-      echo "usage: ./playcrack.sh <dictionary-file> <ciphertext> <expect-regex>"
-      echo
-      echo "The ./playfair executable is expected to be in the path"
-      echo
-      exit 1
-  fi
-
+    playcrack_load_dictionary "$1"
+    playcrack_iterate_single "$2" "$3"
+    playcrack_iterate_double "$2" "$3"
+    playcrack_iterate_triple "$2" "$3"
 
 
 }
 
-##-----------------------------------------------------------------------##
+##------------------------------------------------------------------------|
 playcrack_main $*
