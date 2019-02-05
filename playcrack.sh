@@ -23,48 +23,38 @@
 ## SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ##------------------------------------------------------------------------|
 
-
-# read dictionary file
-# try word combos
-# grep for heywords
+##------------------------------------------------------------------------|
+# Purpose: This script will read in a word dictionary file, expected to be
+# a text file with one word per line.  It will then brute force try every
+# possible word combination as playfair passphrases, from 1 up to 3 words
+# combined, for a total of N + N^2 + N^3 iterations.  It will use these
+# against the provided ciphertext, and grep the output for the provided
+# regular expression, filtering out everything that doesn't match.
 
 ##------------------------------------------------------------------------|
-function playcrack_usage {
-  echo "usage: ./playcrack.sh <dictionary-file>"
-  echo
-}
+function playcrack_load_dictionary
+{
+    # Check for existance of dictionary file
+    if [ ! -e "$1" ]
+    then
+        echo "ERROR: Dictionary file $1 does not exist"
+        exit 1
+    fi
 
-##-----------------------------------------------------------------------##
-function playcrack_coerce {
-  # set default range if no arguments
-  if [ -z $1 ]
-  then
-    echo "warning: playcrack_coerce: no range coerce argument"
-    range_coerce=0
-  else
-    range_coerce=$1
-  fi
+    # Get number of lines
+    dictEntries=`cat "$1" | wc -l`
+    if [ $dictEntries -eq 0 ]
+    then
+        echo "ERROR: Dictionary file $1 contains no entries"
+        exit 2
+    fi
 
-  # coerce the value to within acceptible bounds
-  if [ $range_coerce -lt $range_min ]
-  then
-    range_coerce=$range_min
-  elif [ $range_coerce -gt $range_max ]
-  then
-    range_coerce=$range_max
-  fi
+    # Read in dictionary file to array
 }
 
 ##-----------------------------------------------------------------------##
 function playcrack_next {
   # check for existance of input database file
-  if [ ! -e "$range_db_in" ]
-  then
-    echo "error: $range_db_in does not exist"
-  else
-    # get number of lines in database file
-    range_entries=`wc -l "$range_db_in" | sed -e 's/^[ ^t]*//g' | \
-      cut --delimiter=' ' --fields=1`
 
     # check for empty database
     if [ $range_entries -eq 0 ]
@@ -79,37 +69,28 @@ function playcrack_next {
 
       # get and remove the address at the specified line
       address=`sed -n "$range_random p" "$range_db_in"`
-      sed "$range_random d" "$range_db_in" > "$range_db_tmp"
-      mv -f "$range_db_tmp" "$range_db_in"
-      # note - this is disk i/o intensive!! :(
 
       # report address and record to output database
       echo "$address"
-      echo "$address" >> "$range_db_out"
-      #echo "range_entries: $range_entries"
-      #echo "range_random: $range_random"
     fi
   fi
 }
 
 ##-----------------------------------------------------------------------##
 function playcrack_main {
-  # show help if no mode argument
-  if [ -z "$1" ]
+  # show help if not enough arguments
+  if [ -z "$3" ]
   then
-    playcrack_usage
-
-
-  elif [ "$1" == "reset" ]
-  then
-    playcrack_reset
-
-  else
-    echo "error: unknown mode: $1"
+      echo "usage: ./playcrack.sh <dictionary-file> <ciphertext> <expect-regex>"
+      echo
+      echo "The ./playfair executable is expected to be in the path"
+      echo
+      exit 1
   fi
+
+
+
 }
 
 ##-----------------------------------------------------------------------##
 playcrack_main $*
-
-
