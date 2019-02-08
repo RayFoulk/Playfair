@@ -66,33 +66,29 @@ function playcrack_load_dictionary
 ##------------------------------------------------------------------------|
 function playcrack_try_passphrase
 {
-
+    echo "passphrase: $1"
+    ./playfair -p "$1" -d "$2"
 }
 
 ##------------------------------------------------------------------------|
-function playcrack_iterate_single
+function playcrack_iterate_combos
 {
-    firstWord=1
-    while [ $dictEntry -le $dictEntries ]
+    word1=0
+    while [ $word1 -le $dictEntries ]
     do
-        # Get the word
-        dictionary[$dictEntry]=`sed -n "$dictEntry p" "$1"`
-        #echo "dictWord: ${dictionary[$dictEntry]}"
-        dictEntry=$[$dictEntry+1]
+        word2=0
+        while [ $word2 -le $dictEntries ]
+        do
+            word3=0
+            while [ $word3 -le $dictEntries ]
+            do
+                playcrack_try_passphrase "${dictionary[$word1]} ${dictionary[$word2]} ${dictionary[$word3]}" "$1" "$2"
+                word3=$[$word3+1]
+            done
+            word2=$[$word2+1]
+        done
+        word1=$[$word1+1]
     done
-    
-}
-
-##------------------------------------------------------------------------|
-function playcrack_iterate_double
-{
-
-}
-
-##------------------------------------------------------------------------|
-function playcrack_iterate_triple
-{
-
 }
 
 ##------------------------------------------------------------------------|
@@ -109,11 +105,7 @@ function playcrack_main
     fi
 
     playcrack_load_dictionary "$1"
-    playcrack_iterate_single "$2" "$3"
-    playcrack_iterate_double "$2" "$3"
-    playcrack_iterate_triple "$2" "$3"
-
-
+    playcrack_iterate_combos "$2" "$3"
 }
 
 ##------------------------------------------------------------------------|

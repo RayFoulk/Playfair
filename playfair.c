@@ -518,7 +518,7 @@ static void lookup(char c, size_t * col, size_t * row)
         }
     }
 
-    printf("ERROR: lookup(%c) failed\n", c);
+    printf("ERROR: lookup(0x%02X) \'%c\' failed\n", c, isprint(c) ? c : ' ');
     quit(8);
 }
 
