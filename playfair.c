@@ -126,7 +126,7 @@ static void allockey(const char * key)
 
     if (pf.key == NULL)
     {
-        printf("ERROR: Could not allocate passphrase/key buffer!\n");
+        fprintf(stderr, "\nERROR: Could not allocate passphrase/key buffer!\n");
         quit(4);
     }
 
@@ -158,7 +158,7 @@ static void allocmsg(const char * msg)
 
     if (pf.msg == NULL)
     {
-        printf("ERROR: Could not allocate message buffer!\n");
+        fprintf(stderr, "\nERROR: Could not allocate message buffer!\n");
         quit(5);
     }
 
@@ -245,13 +245,13 @@ static void parse(int argc, char *argv[])
     // Require at least a passphrase and a message
     if (pf.key == NULL)
     {
-        printf("ERROR: No passphrase was given\n");
+        fprintf(stderr, "\nERROR: No passphrase was given\n");
         help(argv[0], opts);
     }
 
     if (pf.msg == NULL)
     {
-        printf("ERROR: No message was given\n");
+        fprintf(stderr, "\nERROR: No message was given\n");
         help(argv[0], opts);
     }
 }
@@ -382,7 +382,7 @@ static void nonces(char * str)
     {
         if (str[len - 1] == pf.nonce)
         {
-            printf("ERROR: Cannot encode message with badly placed"
+            fprintf(stderr, "\nERROR: Cannot encode message with badly"
                 " intentional nonces\n");
             quit(7);
         }
@@ -429,7 +429,7 @@ static void fillkey(char * str)
     // Sanity check that the key block is correctly sized
     if (len != KEY_SIZE)
     {
-        printf("ERROR: Invalid key block size: %zu\n", len);
+        fprintf(stderr, "\nERROR: Invalid key block size: %zu\n", len);
         quit(6);
     }
 }
@@ -507,6 +507,14 @@ static char keyletter(size_t col, size_t row)
 // Given a letter, find its keyblock coordinates
 static void lookup(char c, size_t * col, size_t * row)
 {
+    // Hack: If the lookup char is NULL zero, it probably means we were
+    // given an odd number of ciphertext characters.  fudge it in with
+    // a nonce character instead of throwing an error.
+    if (c == '\0')
+    {
+        c = pf.nonce;
+    }
+
     for (*col = 0; *col < KEY_WIDTH; (*col)++)
     {
         for (*row = 0; *row < KEY_HEIGHT; (*row)++)
@@ -518,7 +526,7 @@ static void lookup(char c, size_t * col, size_t * row)
         }
     }
 
-    printf("ERROR: lookup(0x%02X) \'%c\' failed\n", c, isprint(c) ? c : ' ');
+    fprintf(stderr, "\nERROR: lookup(0x%02X) \'%c\' failed\n", c, isprint(c) ? c : ' ');
     quit(8);
 }
 
@@ -532,7 +540,7 @@ static void encodepair(char first, char second)
     // message has been filtered through nonce().
     if (first == second)
     {
-        printf("ERROR: %s(%c, %c) Invalid pair\n", __FUNCTION__,
+        fprintf(stderr, "\nERROR: %s(%c, %c) Invalid pair\n", __FUNCTION__,
             first, second);
         quit(9);
     }

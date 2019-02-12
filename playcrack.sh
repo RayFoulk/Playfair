@@ -66,8 +66,11 @@ function playcrack_load_dictionary
 ##------------------------------------------------------------------------|
 function playcrack_try_passphrase
 {
+    echo "------------ trial -------------"
     echo "passphrase: $1"
-    ./playfair -p "$1" -d "$2"
+    message=`./playfair -p "$1" -d "$2"`
+    echo "message: $message"
+    echo
 }
 
 ##------------------------------------------------------------------------|
@@ -82,7 +85,7 @@ function playcrack_iterate_combos
             word3=0
             while [ $word3 -le $dictEntries ]
             do
-                playcrack_try_passphrase "${dictionary[$word1]} ${dictionary[$word2]} ${dictionary[$word3]}" "$1" "$2"
+                playcrack_try_passphrase "${dictionary[$word1]} ${dictionary[$word2]} ${dictionary[$word3]}" "$1"
                 word3=$[$word3+1]
             done
             word2=$[$word2+1]
@@ -95,9 +98,9 @@ function playcrack_iterate_combos
 function playcrack_main
 {
     # show help if not enough arguments
-    if [ -z "$3" ]
+    if [ -z "$2" ]
     then
-        echo "usage: ./playcrack.sh <dictionary-file> <ciphertext> <expect-regex>"
+        echo "usage: ./playcrack.sh <dictionary-file> <ciphertext>"
         echo
         echo "The ./playfair executable is expected to be in the path"
         echo
@@ -105,7 +108,7 @@ function playcrack_main
     fi
 
     playcrack_load_dictionary "$1"
-    playcrack_iterate_combos "$2" "$3"
+    playcrack_iterate_combos "$2"
 }
 
 ##------------------------------------------------------------------------|
